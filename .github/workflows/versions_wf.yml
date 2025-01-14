@@ -15,8 +15,14 @@ jobs:
       - name: Read versions from file
         id: get-versions
         run: |
+          echo "Reading versions from versions.json"
           matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+      - name: Log matrix
+        id: log-matrix
+        run: |
+          echo "Matrix: ${{ steps.get-versions.outputs.matrix }}"
 
       - name: Set matrix
         id: set-matrix
@@ -35,12 +41,7 @@ jobs:
       - name: Echo Version
         run: echo "Processing ${{ matrix.service }} version ${{ matrix.version }}"
 
-      # Add your action step here
       - name: Example Action
         run: |
           echo ${{ matrix.service }}
           echo ${{ matrix.version }}
-
-
-      # Add your action step here
-
