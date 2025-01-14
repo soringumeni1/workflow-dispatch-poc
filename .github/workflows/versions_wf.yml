@@ -9,7 +9,7 @@ jobs:
   read-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.get-versions.outputs.matrix }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,27 +21,32 @@ jobs:
           matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
           echo "::set-output name=matrix::$matrix"
 
-      - name: Log Matrix Before Set-Output
+      - name: Log matrix
+        id: log-matrix
         run: |
-           echo "Matrix before set-output: ${{ steps.get-versions.outputs.matrix }}"
+          echo "Matrix: $matrix"
+
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          echo "::set-output name=matrix::${{ steps.get-versions.outputs.matrix }}"
 
   process-versions:
     needs: read-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+      matrix: 
+        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Log Matrix in process-versions
-        run: |
-          echo "Matrix in process-versions: ${{ fromJson(needs.read-versions.outputs.matrix) }}"
-
       - name: Echo Version
-        run: echo "Processing ${{ matrix.service }} version ${{ matrix.version }}"
+        run: echo "Processing ${{ matrix.service_version.service }} version ${{ matrix.service_version.version }}"
 
       - name: Example Action
         run: |
           echo ${{ matrix.service }}
           echo ${{ matrix.version }}
+
+
