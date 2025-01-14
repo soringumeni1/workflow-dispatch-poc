@@ -1,0 +1,33 @@
+name: Run Actions for Each Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  process-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read versions from file
+        id: get-versions
+        run: |
+          versions=$(jq -r 'to_entries[] | "\(.key):\(.value)"' versions.json)
+          echo "$versions" > versions.txt
+
+      - name: Run actions for each version
+        id: process-versions
+        run: |
+          while IFS=: read -r service version; do
+            echo "Processing $service version $version"
+            echo "::set-output name=service::$service"
+            echo "::set-output name=version::$version"
+            # You can call another step here using GitHub composite action if necessary
+          done < versions.txt
+
+      - name: Example Action
+        uses: actions/example-action@v1
+        with:
+          service: ${{ steps.process-versions.outputs.service }}
+          version: ${{ steps.process-versions.outputs.version }}
