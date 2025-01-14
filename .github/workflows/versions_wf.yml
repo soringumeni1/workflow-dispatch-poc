@@ -24,7 +24,7 @@ jobs:
       - name: Log matrix
         id: log-matrix
         run: |
-          echo "Matrix: $matrix"
+          echo "Matrix: :${{ steps.get-versions.outputs.matrix }}"
 
       - name: Set matrix
         id: set-matrix
@@ -46,7 +46,7 @@ jobs:
 
       - name: Example Action
         run: |
-          echo ${{ matrix.service }}
-          echo ${{ matrix.version }}
+          echo ${{ matrix.service_version.service }}
+          echo ${{ matrix.service_version.version }}
 
 
