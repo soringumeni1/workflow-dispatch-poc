@@ -21,12 +21,13 @@ jobs:
         run: |
           while IFS=: read -r service version; do
             echo "Processing $service version $version"
-            echo "::set-output name=service::$service"
-            echo "::set-output name=version::$version"
+            echo "service=$service" >> $GITHUB_OUTPUT
+            echo "version=$version" >> $GITHUB_OUTPUT
             # You can call another step here using GitHub composite action if necessary
           done < versions.txt
 
       - name: Example Action
-        run: |
-          echo ${{ steps.process-versions.outputs.service }}
-          echo ${{ steps.process-versions.outputs.version }}
+        uses: actions/example-action@v1
+        with:
+          service: ${{ steps.process-versions.outputs.service }}
+          version: ${{ steps.process-versions.outputs.version }}
