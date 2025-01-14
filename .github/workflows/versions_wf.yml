@@ -27,7 +27,6 @@ jobs:
           done < versions.txt
 
       - name: Example Action
-        uses: actions/example-action@v1
-        with:
-          service: ${{ steps.process-versions.outputs.service }}
-          version: ${{ steps.process-versions.outputs.version }}
+        run: |
+          echo ${{ steps.process-versions.outputs.service }}
+          echo ${{ steps.process-versions.outputs.version }}
