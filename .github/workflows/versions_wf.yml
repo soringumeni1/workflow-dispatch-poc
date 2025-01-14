@@ -42,7 +42,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Log Matrix in process-versions
-        run: echo "Matrix in process-versions: ${{ fromJson(needs.read-versions.outputs.matrix) }}"
+        run: |
+          echo "Matrix in process-versions: ${{ fromJson(needs.read-versions.outputs.matrix) }}"
 
       - name: Echo Version
         run: echo "Processing ${{ matrix.service }} version ${{ matrix.version }}"
