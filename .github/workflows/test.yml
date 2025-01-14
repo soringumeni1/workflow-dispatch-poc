@@ -1,0 +1,16 @@
+name: Trigger workflow in another repository
+run-name: ${{ github.actor }} triggered workflow in another repository
+
+on:
+  push:
+    branches:
+      - 'main'
+
+- name: Invoke workflow in another repo with inputs
+  uses: benc-uk/workflow-dispatch@v1
+  with:
+    workflow: blank.yml
+    repo: soringumeni1/multiple-env-poc
+    inputs: '{ "env": "preprod", "tag": "1.0.3" }'
+    # Required when using the `repo` option. Either a PAT or a token generated from the GitHub app or CLI
+    token: "${{ secrets.MY_TOKEN }}"
