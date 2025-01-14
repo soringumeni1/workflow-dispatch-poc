@@ -1,7 +1,9 @@
 name: Run Actions for Each Version
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - "main"
 
 jobs:
   read-versions:
@@ -19,15 +21,15 @@ jobs:
           matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
           echo "::set-output name=matrix::$matrix"
 
-      - name: Log matrix
-        id: log-matrix
-        run: |
-          echo "Matrix: ${{ steps.get-versions.outputs.matrix }}"
+      - name: Log Matrix Before Set-Output
+        run: echo "Matrix before set-output: ${{ steps.get-versions.outputs.matrix }}"
 
       - name: Set matrix
         id: set-matrix
-        run: echo "::set-output name=matrix::$matrix"
-        
+        run: |
+          echo "Matrix before setting output: ${{ steps.get-versions.outputs.matrix }}"
+          echo "::set-output name=matrix::$matrix"
+
   process-versions:
     needs: read-versions
     runs-on: ubuntu-latest
@@ -38,6 +40,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Log Matrix in process-versions
+        run: echo "Matrix in process-versions: ${{ fromJson(needs.read-versions.outputs.matrix) }}"
+
       - name: Echo Version
         run: echo "Processing ${{ matrix.service }} version ${{ matrix.version }}"
 
@@ -45,6 +50,3 @@ jobs:
         run: |
           echo ${{ matrix.service }}
           echo ${{ matrix.version }}
-
-
-
