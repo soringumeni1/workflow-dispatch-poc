@@ -9,7 +9,7 @@ jobs:
   read-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.get-versions.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,16 +24,6 @@ jobs:
       - name: Log Matrix Before Set-Output
         run: |
            echo "Matrix before set-output: ${{ steps.get-versions.outputs.matrix }}"
-
-      - name: Set matrix
-        id: set-matrix
-        run: |
-          echo "Matrix before setting output: ${{ steps.get-versions.outputs.matrix }}"
-          echo "::set-output name=matrix::$matrix"
-      
-      - name: Log Matrix After Set-Output
-        run: | 
-          echo "Matrix after set-output: ${{ steps.set-matrix.outputs.matrix }}"
 
   process-versions:
     needs: read-versions
