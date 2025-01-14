@@ -22,7 +22,8 @@ jobs:
           echo "::set-output name=matrix::$matrix"
 
       - name: Log Matrix Before Set-Output
-        run: echo "Matrix before set-output: ${{ steps.get-versions.outputs.matrix }}"
+        run: |
+           echo "Matrix before set-output: ${{ steps.get-versions.outputs.matrix }}"
 
       - name: Set matrix
         id: set-matrix
