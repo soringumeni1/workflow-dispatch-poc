@@ -6,11 +6,20 @@ on:
     branches:
       - 'main'
 
-- name: Invoke workflow in another repo with inputs
-  uses: benc-uk/workflow-dispatch@v1
-  with:
-    workflow: blank.yml
-    repo: soringumeni1/multiple-env-poc
-    inputs: '{ "env": "preprod", "tag": "1.0.3" }'
-    # Required when using the `repo` option. Either a PAT or a token generated from the GitHub app or CLI
-    token: "${{ secrets.MY_TOKEN }}"
+jobs:
+  run:
+  name: Run
+  permissions:
+    content: write
+    id-token: write
+
+  runs-on: ubuntu-latest
+  steps:
+    - name: Invoke workflow in another repo with inputs
+      uses: benc-uk/workflow-dispatch@v1
+      with:
+        workflow: blank.yml
+        repo: soringumeni1/multiple-env-poc
+        inputs: '{ "env": "preprod", "tag": "1.0.3" }'
+        # Required when using the `repo` option. Either a PAT or a token generated from the GitHub app or CLI
+        token: "${{ secrets.MY_TOKEN }}"
