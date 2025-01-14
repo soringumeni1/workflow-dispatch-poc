@@ -21,7 +21,7 @@ jobs:
     needs: process-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.process-versions.outputs.matrix) }}
+      matrix: ${{ needs.process-versions.outputs.matrix }}
 
     steps:
       - name: Checkout
