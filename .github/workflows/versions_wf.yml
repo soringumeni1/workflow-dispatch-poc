@@ -4,10 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  read-versions:
+  process-versions:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,18 +13,15 @@ jobs:
       - name: Read versions from file
         id: get-versions
         run: |
-          matrix=$(jq -r 'to_entries | map({ service: .key, version: .value })' versions.json)
+          echo "Creating a matrix from versions.json"
+          matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
           echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
-      - name: Set matrix
-        id: set-matrix
-        run: echo "::set-output name=matrix::${{ steps.get-versions.outputs.matrix }}"
-
-  process-versions:
-    needs: read-versions
+  run-actions:
+    needs: process-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+      matrix: ${{ fromJson(needs.process-versions.outputs.matrix) }}
 
     steps:
       - name: Checkout
@@ -38,5 +33,5 @@ jobs:
       # Add your action step here
       - name: Example Action
         run: |
-          echo  ${{ matrix.service }}
-          echo  ${{ matrix.version }}
+          echo ${{ matrix.service }}
+          echo ${{ matrix.version }}
