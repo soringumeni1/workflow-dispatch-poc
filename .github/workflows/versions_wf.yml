@@ -30,6 +30,10 @@ jobs:
         run: |
           echo "Matrix before setting output: ${{ steps.get-versions.outputs.matrix }}"
           echo "::set-output name=matrix::$matrix"
+      
+      - name: Log Matrix After Set-Output
+        run: | 
+          echo "Matrix after set-output: ${{ steps.set-matrix.outputs.matrix }}"
 
   process-versions:
     needs: read-versions
