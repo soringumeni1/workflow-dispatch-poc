@@ -9,7 +9,7 @@ jobs:
   read-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.get-versions.outputs.matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
