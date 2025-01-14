@@ -29,8 +29,7 @@ jobs:
     needs: read-versions
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ needs.read-versions.outputs.matrix }}
-
+      matrix: ${{ fromJson(needs.read-versions.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
