@@ -20,6 +20,6 @@ jobs:
         with:
           workflow: blank.yml
           repo: soringumeni1/multiple-env-poc
-          inputs: '{ "env": "preprod", "tag": "1.0.3" }'
+          inputs: '{ "env": "preprod", "tag_version": "1.0.3" }'
           # Required when using the `repo` option. Either a PAT or a token generated from the GitHub app or CLI
           token: "${{ secrets.MY_TOKEN }}"
