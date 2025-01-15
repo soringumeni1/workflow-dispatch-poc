@@ -1,52 +1,50 @@
-name: Run Actions for Each Version
+name: Deploy on Service Version Change
 
 on:
   push:
-    branches:
-      - "main"
+    branches: [main]
 
 jobs:
-  read-versions:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.get-versions.outputs.matrix }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+        # Fetch all branches to ensure previous commit is available
+        fetch-depth: 0
 
-      - name: Read versions from file
-        id: get-versions
+      - name: Get previous commit hash
+        id: previous_commit
         run: |
-          echo "Reading versions from versions.json"
-          matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
-          echo "::set-output name=matrix::$matrix"
+          previous_commit_hash=$(git rev-parse HEAD^)
+          echo "::set-output name=commit_hash::${previous_commit_hash}"
 
-      - name: Log matrix
-        id: log-matrix
+      - name: Get current versions
+        id: current_versions
         run: |
-          echo "Matrix: :${{ steps.get-versions.outputs.matrix }}"
+          current_versions=$(cat versions.json | jq -r '.')
+          echo "::set-output name=current_versions::${current_versions}"
 
-      - name: Set matrix
-        id: set-matrix
+      - name: Get previous versions (using environment variable)
+        id: previous_versions
+        env:
+          PREVIOUS_COMMIT_HASH: ${{ steps.previous_commit.outputs.commit_hash }}
         run: |
-          echo "::set-output name=matrix::${{ steps.get-versions.outputs.matrix }}"
+          previous_versions=$(git show $PREVIOUS_COMMIT_HASH:versions.json | jq -r '.')
+          echo "previous_versions: $previous_versions"  # for debugging purposes (optional)
 
-  process-versions:
-    needs: read-versions
-    runs-on: ubuntu-latest
-    strategy:
-      matrix: 
-        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Echo Version
-        run: echo "Processing ${{ matrix.service_version.service }} version ${{ matrix.service_version.version }}"
-
-      - name: Example Action
+      - name: Check for version changes
+        id: version_check
         run: |
-          echo ${{ matrix.service_version.service }}
-          echo ${{ matrix.service_version.version }}
+          current_versions=$(echo "${{ steps.current_versions.outputs.current_versions }}")
+          previous_versions=$(echo "${previous_versions}")  # Use output directly from previous step
+          if [[ "$current_versions" != "$previous_versions" ]]; then
+            echo "::set-output name=should_deploy::true"
+          else
+            echo "::set-output name=should_deploy::false"
+          fi
 
-
+      - name: Run deployment job (conditional)
+        if: steps.version_check.outputs.should_deploy == 'true'
+        run: |
+          # Your deployment commands here
+          echo "Deploying... (Version change detected)"
