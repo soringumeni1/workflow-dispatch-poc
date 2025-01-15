@@ -14,43 +14,34 @@ jobs:
           ref: "main"
           fetch-depth: 0
 
-          
       - name: Get previous commit hash
         id: previous_commit
         run: |
-          echo $(git log --pretty=format:%H -n 3)
           previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
-          echo ${previous_commit_hash}
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
       - name: Get current versions
         id: current_versions
         run: |
           current_versions=$(cat versions.json | jq -r '.')
-          echo ${current_versions}
           echo "::set-output name=current_versions::${current_versions}"
 
       - name: Get previous versions
         id: previous_versions
         run: |   
-          echo ${{ steps.previous_commit.outputs.commit_hash }}
-          echo $(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json)
           previous_versions=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -r '.')
-          echo ${previous_versions}
           echo "::set-output name=previous_versions::${previous_versions}"
 
       - name: Check for version changes
         id: version_check
         run: |
-          echo ${{ steps.current_versions.outputs.current_versions }}
-          current_versions= ${{ steps.current_versions.outputs.current_versions }}
-          echo $current_versions
-          
-          echo ${{ steps.previous_versions.outputs.previous_versions }}
-          previous_versions=${{ steps.previous_versions.outputs.previous_versions }}
-          echo $previous_versions
+          current_versions="${{ steps.current_versions.outputs.current_versions }}"
+          previous_versions="${{ steps.previous_versions.outputs.previous_versions }}"
 
-          if [[ "$current_versions" != "$previous_versions" ]]; then
+          echo "Current Versions: $current_versions"
+          echo "Previous Versions: $previous_versions"
+          
+          if [ "$current_versions" != "$previous_versions" ]; then
             echo "::set-output name=should_deploy::true"
           else
             echo "::set-output name=should_deploy::false"
