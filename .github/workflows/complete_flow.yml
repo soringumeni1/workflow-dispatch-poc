@@ -5,13 +5,15 @@ on:
     branches: [main]
 
 jobs:
-  read-versions:
+  read-and-detect-versions:
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.get-versions.outputs.matrix }}
+      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Read versions from file
         id: get-versions
@@ -21,22 +23,8 @@ jobs:
           echo "::set-output name=matrix::$matrix"
 
       - name: Log matrix
-        id: log-matrix
         run: |
           echo "Matrix: :${{ steps.get-versions.outputs.matrix }}"
-
-  detect-version-change:
-    needs: read-versions
-    runs-on: ubuntu-latest
-    strategy:
-      matrix: 
-        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: "main"
-          fetch-depth: 0
 
       - name: Get previous commit hash
         id: previous_commit
@@ -44,63 +32,60 @@ jobs:
           previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
-      - name: Get current version
-        id: current_versions
+      - name: Get current and previous versions
+        id: check-versions
         run: |
-          current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
-          echo "::set-output name=current_version::${current_version}"
+          echo "Checking version changes"
+          echo ${{ steps.get-versions.outputs.matrix }} | jq -c '.[]' | while read service_version; do
+            service=$(echo $service_version | jq -r '.service')
+            current_version=$(echo $service_version | jq -r '.version')
+            previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -r --arg service "$service" '.[$service]')
+            echo "Current Version: $current_version for service: $service"
+            echo "Previous Version: $previous_version for service: $service"
+            
+            if [[ "$current_version" != "$previous_version" ]]; then
+              echo "$service" >> changed_services.txt
+            fi
+          done
 
-      - name: Get previous version
-        id: previous_versions
-        run: |   
-          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]')
-          echo "::set-output name=previous_version::${previous_version}"
-
-      - name: Check for version changes
-        id: version_check
+      - name: Collect changes
+        id: collect-changes
         run: |
-          current_version="${{ steps.current_versions.outputs.current_version }}"
-          previous_version="${{ steps.previous_versions.outputs.previous_version }}"
-
-          echo "Current Version: $current_version"
-          echo "Previous Version: $previous_version"
-          
-          if [[ "$current_version" != "$previous_version" ]]; then
-            echo "${{ matrix.service_version.service }}" >> changed_services.txt
+          if [ -f changed_services.txt ]; then
+            changed_services=$(jq -R -s -c 'split("\n")[:-1]' changed_services.txt)
+            echo "::set-output name=changed_services::${changed_services}"
+          else
+            echo "::set-output name=changed_services::[]"
           fi
 
-      - name: Upload changed services file
-        uses: actions/upload-artifact@v2
-        with:
-          name: changed_services
-          path: changed_services.txt
-
   process-versions:
-    needs: detect-version-change
+    needs: read-and-detect-versions
+    if: ${{ needs.read-and-detect-versions.outputs.changed_services != '[]' }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        service: ${{ fromJson(needs.read-and-detect-versions.outputs.changed_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download changed services file
-        uses: actions/download-artifact@v2
+      - name: Echo Version
+        run: echo "Processing ${{ matrix.service }}"
+
+      - name: Get current version for service
+        id: get-version
+        run: |
+          current_version=$(jq -c --arg service "${{ matrix.service }}" '.[$service]' versions.json)
+          echo "::set-output name=current_version::${current_version}"
+
+      - name: Trigger workflow in another repo
+        uses: benc-uk/workflow-dispatch@v1
         with:
-          name: changed_services
-          path: .
-
-      - name: Process each changed service
-        id: process-services
-        run: |
-          changed_services=$(jq -R -s -c 'split("\n")[:-1]' changed_services.txt)
-          echo "Changed Services: $changed_services"
-          echo "::set-output name=changed_services::$changed_services"
-
-      - name: Loop through services and trigger workflows
-        run: |
-          changed_services=$(jq -r '.[]' <<< "${{ steps.process-services.outputs.changed_services }}")
-          for service in $changed_services; do
-            echo "Triggering workflow for service: $service"
-            current_version=$(jq -r --arg service "$service" '.[$service]' versions.json)
-
-            gh workflow run -f env="preprod" -f tag_version="$current_version"
-          done
+          workflow: blank.yml
+          repo: soringumeni1/multiple-env-poc
+          inputs: |
+            {
+              "env": "preprod",
+              "tag_version": ${{ steps.get-version.outputs.current_version }}
+            }
+          token: "${{ secrets.MY_TOKEN }}"
