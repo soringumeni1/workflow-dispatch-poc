@@ -42,9 +42,11 @@ jobs:
       - name: Check for version changes
         id: version_check
         run: |
+          echo ${{ steps.current_versions.outputs.current_versions }}
           current_versions= ${{ steps.current_versions.outputs.current_versions }}
           echo $current_versions
-
+          
+          echo ${{ steps.previous_versions.outputs.previous_versions }}
           previous_versions=${{ steps.previous_versions.outputs.previous_versions }}
           echo $previous_versions
 
