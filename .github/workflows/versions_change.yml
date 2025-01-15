@@ -43,10 +43,10 @@ jobs:
         id: version_check
         run: |
           current_versions= ${{ steps.current_versions.outputs.current_versions }}
-          echo ${current_versions}
+          echo $current_versions
 
           previous_versions=${{ steps.previous_versions.outputs.previous_versions }}
-          echo ${previous_versions}
+          echo $previous_versions
 
           if [[ "$current_versions" != "$previous_versions" ]]; then
             echo "::set-output name=should_deploy::true"
