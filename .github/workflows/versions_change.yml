@@ -13,26 +13,33 @@ jobs:
       - name: Get previous commit hash
         id: previous_commit
         run: |
-          previous_commit_hash=$(git rev-parse -- HEAD^) 
+          previous_commit_hash=$(git rev-parse -- HEAD^)
+          echo ${previous_commit_hash}
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
       - name: Get current versions
         id: current_versions
         run: |
           current_versions=$(cat versions.json | jq -r '.')
+          echo ${current_versions}
           echo "::set-output name=current_versions::${current_versions}"
 
       - name: Get previous versions
         id: previous_versions
         run: |         
           previous_versions=$(git show ${steps.previous_commit.outputs.previous_commit_hash}:versions.json | jq -r '.')
+          echo ${previous_versions}
           echo "::set-output name=previous_versions::${previous_versions}"
 
       - name: Check for version changes
         id: version_check
         run: |
           current_versions=$(echo "${{ steps.current_versions.outputs.current_versions }}")
+          echo ${current_versions}
+
           previous_versions=$(echo "${{ steps.previous_versions.outputs.previous_versions }}")
+          echo ${previous_versions}
+
           if [[ "$current_versions" != "$previous_versions" ]]; then
             echo "::set-output name=should_deploy::true"
           else
