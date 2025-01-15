@@ -31,8 +31,6 @@ jobs:
     strategy:
       matrix: 
         service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
-    outputs:
-      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,44 +69,38 @@ jobs:
             echo "${{ matrix.service_version.service }}" >> changed_services.txt
           fi
 
-      - name: Collect changes
-        id: collect-changes
-        run: |
-          if [ -f changed_services.txt ]; then
-            changed_services=$(jq -R -s -c 'split("\n")[:-1]' changed_services.txt)
-            echo "::set-output name=changed_services::${changed_services}"
-          else
-            echo "::set-output name=changed_services::[]"
-          fi
+      - name: Upload changed services file
+        uses: actions/upload-artifact@v2
+        with:
+          name: changed_services
+          path: changed_services.txt
 
   process-versions:
     needs: detect-version-change
-    if: ${{ needs.detect-version-change.outputs.changed_services != '[]' }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix: 
-        service: ${{ fromJson(needs.detect-version-change.outputs.changed_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Echo Version
-        run: echo "Processing ${{ matrix.service }}"
-
-      - name: Get current version for service
-        id: get-version
-        run: |
-          current_version=$(jq -c --arg service "${{ matrix.service }}" '.[$service]' versions.json)
-          echo "::set-output name=current_version::${current_version}"
-
-      - name: Trigger workflow in another repo
-        uses: benc-uk/workflow-dispatch@v1
+      - name: Download changed services file
+        uses: actions/download-artifact@v2
         with:
-          workflow: blank.yml
-          repo: soringumeni1/multiple-env-poc
-          inputs: |
-            {
-              "env": "preprod",
-              "tag_version": ${{ steps.get-version.outputs.current_version }}
-            }
-          token: "${{ secrets.MY_TOKEN }}"
+          name: changed_services
+          path: .
+
+      - name: Process each changed service
+        id: process-services
+        run: |
+          changed_services=$(jq -R -s -c 'split("\n")[:-1]' changed_services.txt)
+          echo "Changed Services: $changed_services"
+          echo "::set-output name=changed_services::$changed_services"
+
+      - name: Loop through services and trigger workflows
+        run: |
+          changed_services=$(jq -r '.[]' <<< "${{ steps.process-services.outputs.changed_services }}")
+          for service in $changed_services; do
+            echo "Triggering workflow for service: $service"
+            current_version=$(jq -r --arg service "$service" '.[$service]' versions.json)
+
+            gh workflow run -f env="preprod" -f tag_version="$current_version"
+          done
