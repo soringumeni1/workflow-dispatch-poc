@@ -95,6 +95,12 @@ jobs:
       - name: Echo Version
         run: echo "Processing ${{ matrix.service }}"
 
+      - name: Get current version for service
+        id: get-version
+        run: |
+          current_version=$(jq -c --arg service "${{ matrix.service }}" '.[$service]' versions.json)
+          echo "::set-output name=current_version::${current_version}"
+
       - name: Trigger workflow in another repo
         uses: benc-uk/workflow-dispatch@v1
         with:
@@ -103,6 +109,6 @@ jobs:
           inputs: |
             {
               "env": "preprod",
-              "tag_version": ${{ steps.current_versions.outputs.current_versions[matrix.service] }}
+              "tag_version": ${{ steps.get-version.outputs.current_version }}
             }
           token: "${{ secrets.MY_TOKEN }}"
