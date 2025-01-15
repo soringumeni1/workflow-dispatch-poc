@@ -28,11 +28,11 @@ jobs:
   detect-version-change:
     needs: read-versions
     runs-on: ubuntu-latest
-    outputs:
-      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     strategy:
       matrix: 
         service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+    outputs:
+      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,13 +46,13 @@ jobs:
           previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
-      - name: Get current versions
+      - name: Get current version
         id: current_versions
         run: |
           current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
           echo "::set-output name=current_version::${current_version}"
 
-      - name: Get previous versions
+      - name: Get previous version
         id: previous_versions
         run: |   
           previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]')
