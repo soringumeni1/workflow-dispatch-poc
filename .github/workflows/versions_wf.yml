@@ -1,4 +1,4 @@
-name: Deploy on Service Version Change
+name: Deploy on Version Change
 
 on:
   push:
@@ -8,14 +8,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        # Fetch all branches to ensure previous commit is available
-        fetch-depth: 0
+      - uses: actions/checkout@v3 
 
       - name: Get previous commit hash
         id: previous_commit
         run: |
-          previous_commit_hash=$(git rev-parse HEAD^)
+          previous_commit_hash=$(git rev-parse -- HEAD^)
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
       - name: Get current versions
@@ -24,7 +22,7 @@ jobs:
           current_versions=$(cat versions.json | jq -r '.')
           echo "::set-output name=current_versions::${current_versions}"
 
-      - name: Get previous versions (using environment variable)
+      - name: Get previous versions
         id: previous_versions
         env:
           PREVIOUS_COMMIT_HASH: ${{ steps.previous_commit.outputs.commit_hash }}
