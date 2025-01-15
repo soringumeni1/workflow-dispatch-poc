@@ -31,7 +31,7 @@ jobs:
       - name: Get previous versions
         id: previous_versions
         run: |         
-          previous_versions=$(git show ${steps.previous_commit.outputs.previous_commit_hash}:versions.json | jq -r '.')
+          previous_versions=$(git show ${steps.previous_commit.outputs.commit_hash}:versions.json | jq -r '.')
           echo ${previous_versions}
           echo "::set-output name=previous_versions::${previous_versions}"
 
