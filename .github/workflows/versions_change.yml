@@ -16,8 +16,8 @@ jobs:
       - name: Get previous commit hash
         id: previous_commit
         run: |
-          git rev-parse HEAD^
-          previous_commit_hash=$(git rev-parse HEAD^)
+          git log --pretty=format:%H -n 2 | tail -n 1
+          previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
           echo ${previous_commit_hash}
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
