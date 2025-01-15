@@ -1,4 +1,3 @@
-#to do
 name: Deploy and Trigger on Version Change
 
 on:
@@ -29,11 +28,11 @@ jobs:
   detect-version-change:
     needs: read-versions
     runs-on: ubuntu-latest
+    outputs:
+      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     strategy:
       matrix: 
         service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
-    outputs:
-      should_deploy: ${{ steps.version_check.outputs.should_deploy }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -69,30 +68,40 @@ jobs:
           echo "Previous Version: $previous_version"
           
           if [[ "$current_version" != "$previous_version" ]]; then
-            echo "::set-output name=should_deploy::true"
+            echo "${{ matrix.service_version.service }}" >> changed_services.txt
+          fi
+
+      - name: Collect changes
+        id: collect-changes
+        run: |
+          if [ -f changed_services.txt ]; then
+            changed_services=$(jq -R -s -c 'split("\n")[:-1]' changed_services.txt)
+            echo "::set-output name=changed_services::${changed_services}"
           else
-            echo "::set-output name=should_deploy::false"
+            echo "::set-output name=changed_services::[]"
           fi
 
   process-versions:
     needs: [detect-version-change]
-    if: needs.detect-version-change.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix: 
-        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+        service: ${{ fromJson(needs.detect-version-change.outputs.changed_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Echo Version
-        run: echo "Processing ${{ matrix.service_version.service }} version ${{ matrix.service_version.version }}"
+        run: echo "Processing ${{ matrix.service }}"
 
       - name: Trigger workflow in another repo
-        if: ${{ needs.detect-version-change.outputs.should_deploy == 'true' }}
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: blank.yml
           repo: soringumeni1/multiple-env-poc
-          inputs: '{ "env": "preprod", "tag_version": "1.0.3" }'
+          inputs: |
+            {
+              "env": "preprod",
+              "tag_version": ${{ steps.current_versions.outputs.current_versions[matrix.service] }}
+            }
           token: "${{ secrets.MY_TOKEN }}"
