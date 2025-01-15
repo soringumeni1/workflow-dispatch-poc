@@ -13,7 +13,7 @@ jobs:
       - name: Get previous commit hash
         id: previous_commit
         run: |
-          previous_commit_hash=$(git rev-parse HEAD^)
+          previous_commit_hash=$(git rev-parse -- HEAD^) 
           echo "::set-output name=commit_hash::${previous_commit_hash}"
 
       - name: Get current versions
@@ -43,4 +43,4 @@ jobs:
         if: steps.version_check.outputs.should_deploy == 'true'
         run: |
           # Your deployment commands here
-          echo "Deploying... (Version change detected)" 
+          echo "Deploying... (Version change detected)"
