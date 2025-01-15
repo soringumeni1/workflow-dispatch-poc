@@ -1,1 +1,98 @@
 #to do
+name: Deploy and Trigger on Version Change
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  read-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-versions.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read versions from file
+        id: get-versions
+        run: |
+          echo "Reading versions from versions.json"
+          matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
+          echo "::set-output name=matrix::$matrix"
+
+      - name: Log matrix
+        id: log-matrix
+        run: |
+          echo "Matrix: :${{ steps.get-versions.outputs.matrix }}"
+
+  detect-version-change:
+    needs: read-versions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+    outputs:
+      should_deploy: ${{ steps.version_check.outputs.should_deploy }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: "main"
+          fetch-depth: 0
+
+      - name: Get previous commit hash
+        id: previous_commit
+        run: |
+          previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
+          echo "::set-output name=commit_hash::${previous_commit_hash}"
+
+      - name: Get current versions
+        id: current_versions
+        run: |
+          current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
+          echo "::set-output name=current_version::${current_version}"
+
+      - name: Get previous versions
+        id: previous_versions
+        run: |   
+          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]')
+          echo "::set-output name=previous_version::${previous_version}"
+
+      - name: Check for version changes
+        id: version_check
+        run: |
+          current_version="${{ steps.current_versions.outputs.current_version }}"
+          previous_version="${{ steps.previous_versions.outputs.previous_version }}"
+
+          echo "Current Version: $current_version"
+          echo "Previous Version: $previous_version"
+          
+          if [[ "$current_version" != "$previous_version" ]]; then
+            echo "::set-output name=should_deploy::true"
+          else
+            echo "::set-output name=should_deploy::false"
+          fi
+
+  process-versions:
+    needs: [detect-version-change]
+    if: needs.detect-version-change.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: 
+        service_version: ${{ fromJson(needs.read-versions.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Echo Version
+        run: echo "Processing ${{ matrix.service_version.service }} version ${{ matrix.service_version.version }}"
+
+      - name: Trigger workflow in another repo
+        if: ${{ needs.detect-version-change.outputs.should_deploy == 'true' }}
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: blank.yml
+          repo: soringumeni1/multiple-env-poc
+          inputs: '{ "env": "preprod", "tag_version": "1.0.3" }'
+          token: "${{ secrets.MY_TOKEN }}"
