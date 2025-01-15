@@ -1,0 +1,46 @@
+name: Deploy on Version Change
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get previous commit hash
+        id: previous_commit
+        run: |
+          previous_commit_hash=$(git rev-parse HEAD^)
+          echo "::set-output name=commit_hash::${previous_commit_hash}"
+
+      - name: Get current versions
+        id: current_versions
+        run: |
+          current_versions=$(cat versions.json | jq -r '.')
+          echo "::set-output name=current_versions::${current_versions}"
+
+      - name: Get previous versions
+        id: previous_versions
+        run: |
+          previous_versions=$(git show ${previous_commit_hash}:versions.json | jq -r '.')
+          echo "::set-output name=previous_versions::${previous_versions}"
+
+      - name: Check for version changes
+        id: version_check
+        run: |
+          current_versions=$(echo "${{ steps.current_versions.outputs.current_versions }}")
+          previous_versions=$(echo "${{ steps.previous_versions.outputs.previous_versions }}")
+          if [[ "$current_versions" != "$previous_versions" ]]; then
+            echo "::set-output name=should_deploy::true"
+          else
+            echo "::set-output name=should_deploy::false"
+          fi
+
+      - name: Run deployment job (conditional)
+        if: steps.version_check.outputs.should_deploy == 'true'
+        run: |
+          # Your deployment commands here
+          echo "Deploying... (Version change detected)" 
