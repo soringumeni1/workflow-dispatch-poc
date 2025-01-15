@@ -82,7 +82,8 @@ jobs:
           fi
 
   process-versions:
-    needs: [detect-version-change]
+    needs: detect-version-change
+    if: ${{ needs.detect-version-change.outputs.changed_services != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       matrix: 
