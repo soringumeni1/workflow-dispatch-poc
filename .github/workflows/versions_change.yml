@@ -24,8 +24,8 @@ jobs:
 
       - name: Get previous versions
         id: previous_versions
-        run: |
-          previous_versions=$(git show ${previous_commit_hash}:versions.json | jq -r '.')
+        run: |         
+          previous_versions=$(git show ${steps.previous_commit.outputs.previous_commit_hash}:versions.json | jq -r '.')
           echo "::set-output name=previous_versions::${previous_versions}"
 
       - name: Check for version changes
