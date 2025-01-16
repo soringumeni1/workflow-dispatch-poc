@@ -20,8 +20,8 @@ jobs:
         run: |
           echo "Reading versions from versions.json"
           matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
-          echo $matrix
-          echo "::set-output name=matrix::$matrix"
+          echo $matrix > matrix.json
+          echo "::set-output name=matrix::$(cat matrix.json)"
 
       - name: Get previous commit hash
         id: previous_commit
@@ -32,16 +32,16 @@ jobs:
       - name: Get current version
         id: current_versions
         run: |
-          current_version=$(jq -c --arg service "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" '.[$service]' versions.json)
-          echo $current_version
-          echo "::set-output name=current_version::${current_version}"
+          current_version=$(jq -c --argjson matrix "${{ steps.get-versions.outputs.matrix }}" '.[$matrix[].service]' versions.json)
+          echo $current_version > current_version.json
+          echo "::set-output name=current_version::$(cat current_version.json)"
 
       - name: Get previous version
         id: previous_versions
         run: |
-          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" '.[$service]')
-          echo $previous_version
-          echo "::set-output name=previous_version::${previous_version}"
+          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --argjson matrix "${{ steps.get-versions.outputs.matrix }}" '.[$matrix[].service]')
+          echo $previous_version > previous_version.json
+          echo "::set-output name=previous_version::$(cat previous_version.json)"
       
       - name: Check for version changes
         id: version_check
@@ -53,7 +53,7 @@ jobs:
           echo "Previous Version: $previous_version"
           
           if [[ "$current_version" != "$previous_version" ]]; then
-            echo "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" >> changed_services.txt
+            echo "${{ steps.get-versions.outputs.matrix | fromJson | .[].service }}" >> changed_services.txt
           fi
       
       - name: Collect changes
