@@ -32,14 +32,14 @@ jobs:
       - name: Get current version
         id: current_versions
         run: |
-          current_version=$(jq -c --arg service "${{ steps.get-versions.output.matrix.service_version.service }}" '.[$service]' versions.json)
+          current_version=$(jq -c --arg service "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" '.[$service]' versions.json)
           echo $current_version
           echo "::set-output name=current_version::${current_version}"
 
       - name: Get previous version
         id: previous_versions
-        run: |   
-          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ steps.get-versions.output.matrix.service_version.service }}" '.[$service]')
+        run: |
+          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" '.[$service]')
           echo $previous_version
           echo "::set-output name=previous_version::${previous_version}"
       
@@ -53,7 +53,7 @@ jobs:
           echo "Previous Version: $previous_version"
           
           if [[ "$current_version" != "$previous_version" ]]; then
-            echo "${{ steps.get-versions.output.matrix.matrix.service_version.service }}" >> changed_services.txt
+            echo "${{ fromJson(steps.get-versions.outputs.matrix) | map(.service) }}" >> changed_services.txt
           fi
       
       - name: Collect changes
@@ -72,11 +72,11 @@ jobs:
 
   process-versions:
     needs: read-and-detect-versions
-    if: ${{ needs.detect-version-change.outputs.changed_services != '[]' }}
+    if: ${{ needs.read-and-detect-versions.outputs.changed_services != '[]' }}
     runs-on: ubuntu-latest    
     strategy:
       matrix: 
-        service: ${{ fromJson(needs.detect-version-change.outputs.changed_services) }}
+        service: ${{ fromJson(needs.read-and-detect-versions.outputs.changed_services) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
