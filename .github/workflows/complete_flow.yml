@@ -81,7 +81,6 @@ jobs:
           echo "::set-output name=current_version::${current_version}"
 
       - name: Trigger workflow in another repo
-        if: ${{ steps.version_check.outputs.should_deploy == 'true' }}
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: blank.yml
