@@ -32,6 +32,7 @@ jobs:
         id: check-versions
         run: |
           matrix='${{ steps.get-versions.outputs.matrix }}'
+          echo $matrix
           changed_matrix='[]'
           echo "$matrix" | jq -c '.[]' | while read -r service_version; do
             service=$(echo "$service_version" | jq -r '.service')
@@ -39,9 +40,11 @@ jobs:
             previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -r --arg service "$service" '.[$service]')
             
             if [[ "$current_version" != "$previous_version" ]]; then
+              echo "Found different version for $service"
               changed_matrix=$(echo "$changed_matrix" | jq --argjson obj "{\"service\": \"$service\", \"version\": \"$current_version\"}" '. + [$obj]')
             fi
           done
+          echo $changed_matrix
           echo "::set-output name=changed_matrix::$changed_matrix"
 
       - name: Log changed matrix
