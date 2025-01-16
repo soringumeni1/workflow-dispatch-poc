@@ -8,7 +8,7 @@ jobs:
   read-and-detect-versions:
     runs-on: ubuntu-latest
     outputs:
-      changed_matrix: ${{ steps.collect-changes.outputs.changed_matrix }}
+      changed_services: ${{ steps.collect-changes.outputs.changed_services }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
