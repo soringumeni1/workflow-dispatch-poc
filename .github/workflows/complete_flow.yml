@@ -69,6 +69,7 @@ jobs:
             echo "should_deploy=true" >> $GITHUB_OUTPUT;
           else
             echo "should_deploy=false" >> $GITHUB_OUTPUT;
+          fi
 
       - name: Process changed services
         if: ${{ steps.version_check.outputs.should_deploy == 'true' }}
