@@ -20,6 +20,7 @@ jobs:
         run: |
           echo "Reading versions from versions.json"
           matrix=$(jq -c 'to_entries | map({service: .key, version: .value})' versions.json)
+          echo $matrix
           echo "::set-output name=matrix::$matrix"
 
       - name: Get previous commit hash
@@ -31,13 +32,15 @@ jobs:
       - name: Get current version
         id: current_versions
         run: |
-          current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
+          current_version=$(jq -c --arg service "${{ steps.get-versions.output.matrix.service_version.service }}" '.[$service]' versions.json)
+          echo $current_version
           echo "::set-output name=current_version::${current_version}"
 
       - name: Get previous version
         id: previous_versions
         run: |   
-          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]')
+          previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ steps.get-versions.output.matrix.service_version.service }}" '.[$service]')
+          echo $previous_version
           echo "::set-output name=previous_version::${previous_version}"
       
       - name: Check for version changes
@@ -50,7 +53,7 @@ jobs:
           echo "Previous Version: $previous_version"
           
           if [[ "$current_version" != "$previous_version" ]]; then
-            echo "${{ matrix.service_version.service }}" >> changed_services.txt
+            echo "${{ steps.get-versions.output.matrix.matrix.service_version.service }}" >> changed_services.txt
           fi
       
       - name: Collect changes
