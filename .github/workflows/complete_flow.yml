@@ -32,6 +32,7 @@ jobs:
         id: check-versions
         run: |
           matrix=${{ steps.get-versions.outputs.matrix }}
+          echo $matrix
           changed_matrix='[]'
           echo "$matrix" | jq -c '.[]' | while read -r service_version; do
             service=$(echo "$service_version" | jq -r '.service')
@@ -42,6 +43,7 @@ jobs:
               changed_matrix=$(echo "$changed_matrix" | jq --argjson obj "{\"service\": \"$service\", \"version\": \"$current_version\"}" '. + [$obj]')
             fi
           done
+          echo $changed_matrix
           echo "::set-output name=changed_matrix::$changed_matrix"
 
       - name: Log changed matrix
@@ -52,30 +54,20 @@ jobs:
     needs: read-and-detect-versions
     if: ${{ needs.read-and-detect-versions.outputs.changed_matrix != '[]' }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix: 
-        service_version: ${{ fromJson(needs.read-and-detect-versions.outputs.changed_matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Echo Version
-        run: echo "Processing ${{ matrix.service_version.service }}"
-
-      - name: Get current version for service
-        id: get-version
+      - name: Process each service
         run: |
-          current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
-          echo "::set-output name=current_version::${current_version}"
-
-      - name: Trigger workflow in another repo
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: blank.yml
-          repo: soringumeni1/multiple-env-poc
-          inputs: |
-            {
-              "env": "preprod",
-              "tag_version": ${{ steps.get-version.outputs.current_version }}
-            }
-          token: "${{ secrets.MY_TOKEN }}"
+          echo "Processing each service in changed matrix"
+          changed_matrix=${{ needs.read-and-detect-versions.outputs.changed_matrix }}
+          echo "$changed_matrix" | jq -c '.[]' | while read -r service_version; do
+            service=$(echo "$service_version" | jq -r '.service')
+            version=$(echo "$service_version" | jq -r '.version')
+            echo "Processing service: $service with version: $version"
+            
+            # Place your steps here to process each service
+            echo "Triggering workflow for $service with version $version"
+            gh workflow run blank.yml -r soringumeni1/multiple-env-poc -f env="preprod" -f tag_version="$version" -f service="$service"
+          done
