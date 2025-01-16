@@ -42,19 +42,19 @@ jobs:
         id: previous_commit
         run: |
           previous_commit_hash=$(git log --pretty=format:%H -n 2 | tail -n 1)
-          echo "::set-output name=commit_hash::${previous_commit_hash}"
+          echo "::set-output name=commit_hash::$previous_commit_hash"
 
       - name: Get current version
         id: current_versions
         run: |
           current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
-          echo "::set-output name=current_version::${current_version}"
+          echo "::set-output name=current_version::$current_version"
 
       - name: Get previous version
         id: previous_versions
         run: |   
           previous_version=$(git show ${{ steps.previous_commit.outputs.commit_hash }}:versions.json | jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]')
-          echo "::set-output name=previous_version::${previous_version}"
+          echo "::set-output name=previous_version::$previous_version"
 
       - name: Check for version changes
         id: version_check
@@ -66,9 +66,9 @@ jobs:
           echo "Previous Version: $previous_version"
           
           if [[ "$current_version" != "$previous_version" ]]; then
-            echo "::set-output name=should_deploy::true"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=should_deploy::false"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
 
       - name: Process changed services
         if: ${{ steps.version_check.outputs.should_deploy == 'true' }}
@@ -78,10 +78,12 @@ jobs:
         id: get-version
         run: |
           current_version=$(jq -c --arg service "${{ matrix.service_version.service }}" '.[$service]' versions.json)
-          echo "::set-output name=current_version::${current_version}"
+          echo "::set-output name=current_version::$current_version"
 
       - name: Trigger workflow in another repo
+        if: ${{ steps.version_check.outputs.should_deploy == 'true' }}
         uses: benc-uk/workflow-dispatch@v1
+        
         with:
           workflow: blank.yml
           repo: soringumeni1/multiple-env-poc
