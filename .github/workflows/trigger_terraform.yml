@@ -18,7 +18,7 @@ jobs:
       - name: Invoke workflow in another repo with inputs
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: registry_prod_manual.yml
+          workflow: registry_prod_manual.yaml
           ref: researcherregistryprod
           repo: HDRUK/gcp-multi-project-infrastructure
           inputs: '{ "step_to_run": "plan" }'
