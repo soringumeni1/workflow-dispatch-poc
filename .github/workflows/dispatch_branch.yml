@@ -1,5 +1,5 @@
-name: Trigger workflow in another repository
-run-name: ${{ github.actor }} triggered workflow in another repository
+name: Trigger workflow in another repository with branch
+run-name: ${{ github.actor }} triggered workflow with branch in another repository
 
 on:
   push:
