@@ -24,7 +24,7 @@ jobs:
       - name: Trigger workflow in the traser repository
         uses: benc-uk/workflow-dispatch@v1
         with:
-          workflow: deployment.yaml
+          workflow: branch_dispatch.yml
           repo: HDRUK/multiple-env-poc
           ref: |-
               ${{
