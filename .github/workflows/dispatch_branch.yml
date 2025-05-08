@@ -36,4 +36,4 @@ jobs:
             {
               "env": "${{ steps.extract_branch.outputs.branch }}"
             }
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.MY_TOKEN }}
