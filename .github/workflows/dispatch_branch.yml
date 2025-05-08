@@ -17,7 +17,9 @@ jobs:
     steps:
       - name: Extract branch name # Extract the branch name for the deployment environment
         shell: bash
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        run: |
+          echo "${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
       - name: Trigger workflow in the traser repository
         uses: benc-uk/workflow-dispatch@v1
