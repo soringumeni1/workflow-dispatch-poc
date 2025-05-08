@@ -3,8 +3,10 @@ run-name: ${{ github.actor }} triggered workflow with branch in another reposito
 
 on:
   push:
-    branches:
-      - 'main'
+    branches: [dev, main]
+  pull_request:
+    types: [opened, edited, synchronize]
+    
 jobs:
   build:
     name: build
