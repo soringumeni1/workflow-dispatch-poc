@@ -1,0 +1,33 @@
+name: Trigger workflow in another repository
+run-name: ${{ github.actor }} triggered workflow in another repository
+
+on:
+  push:
+    branches:
+      - 'main'
+jobs:
+  build:
+    name: build
+    permissions:
+      contents: write
+      id-token: write
+
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - name: Trigger workflow in the traser repository
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: deployment.yaml
+          repo: HDRUK/traser
+          ref: |-
+              ${{
+                github.ref_name == 'dev' && 'dev'
+              || github.base_ref == 'dev' && 'dev'
+              ||                             'main'
+              }}
+          inputs: |
+            {
+              "env": "${{ steps.extract_branch.outputs.branch }}",
+            }
+          token: ${{ secrets.GH_TOKEN }}
