@@ -15,11 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     steps:
+      - name: Extract branch name # Extract the branch name for the deployment environment
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
       - name: Trigger workflow in the traser repository
         uses: benc-uk/workflow-dispatch@v1
         with:
           workflow: deployment.yaml
-          repo: HDRUK/traser
+          repo: HDRUK/multiple-env-poc
           ref: |-
               ${{
                 github.ref_name == 'dev' && 'dev'
