@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     steps:
-      - name: Extract branch name # Extract the branch name for the deployment environment
+      - name: Extract branch name #Extract the branch name for the deployment environment
         shell: bash
         run: |
           echo "${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
