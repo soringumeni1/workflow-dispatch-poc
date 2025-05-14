@@ -36,6 +36,6 @@ jobs:
               }}
           inputs: |
             {
-              "env": "${{ steps.extract_branch.outputs.branch }}"
+              "schemata_branch": "${{ steps.extract_branch.outputs.branch }}"
             }
           token: ${{ secrets.MY_TOKEN }}
